@@ -12,6 +12,7 @@ Un jeu de **Pierre Papier Ciseaux** moderne et interactif, entièrement en HTML/
 ## ✨ Fonctionnalités
 
 ### 🤖 Mode Solo — Vs IA
+
 - Affrontez une intelligence artificielle
 - Animations fluides de révélation du choix
 - Système de **confettis** lors des victoires
@@ -19,6 +20,7 @@ Un jeu de **Pierre Papier Ciseaux** moderne et interactif, entièrement en HTML/
 - Support clavier : touches `1` `2` `3` ou `Q` `W` `E`
 
 ### 👥 Mode Multijoueur — Temps Réel
+
 - Synchronisation parfaite via **Firebase Realtime Database**
 - Créez une partie avec un **code à 6 chiffres**
 - Partagez le code à votre adversaire pour le rejoindre
@@ -27,6 +29,7 @@ Un jeu de **Pierre Papier Ciseaux** moderne et interactif, entièrement en HTML/
 - Indicateur de connexion en temps réel 🟢
 
 ### 🏁 Système de Partie
+
 - Premier à **5 victoires** remporte la partie
 - **Pips visuels** (●●●●●) pour suivre la progression
 - Modal de fin de partie avec option **Revanche**
@@ -48,7 +51,7 @@ Un jeu de **Pierre Papier Ciseaux** moderne et interactif, entièrement en HTML/
 ## 📱 Compatibilité
 
 | Appareil | Support |
-|---|---|
+| --- | --- |
 | 📱 Petits téléphones (< 400px) | ✅ |
 | 📱 Téléphones standard | ✅ |
 | 📟 Tablettes | ✅ |
@@ -62,6 +65,7 @@ Un jeu de **Pierre Papier Ciseaux** moderne et interactif, entièrement en HTML/
 ## 🚀 Lancement
 
 ### En local
+
 Aucune installation requise. Ouvrez simplement `index.html` dans votre navigateur :
 
 ```bash
@@ -73,7 +77,9 @@ start exercice/index.html
 ```
 
 ### Héberger en ligne
+
 Compatible avec tout hébergeur de fichiers statiques :
+
 - [InfinityFree](https://infinityfree.com) (gratuit)
 - [GitHub Pages](https://pages.github.com)
 - [Netlify](https://netlify.com)
@@ -85,7 +91,7 @@ Compatible avec tout hébergeur de fichiers statiques :
 
 ## 📁 Structure du projet
 
-```
+```text
 exercice/
 ├── index.html   # Structure HTML (3 écrans + modal)
 ├── style.css    # Design, animations, responsive
@@ -98,11 +104,13 @@ exercice/
 ## 🎮 Comment jouer
 
 ### Solo (vs IA)
+
 1. Cliquez sur **"Vs Intelligence Artificielle"**
 2. Choisissez **🪨 Pierre**, **📄 Papier** ou **✂️ Ciseaux**
 3. L'IA révèle son choix — le premier à **5 victoires** gagne !
 
 ### Multijoueur
+
 1. Cliquez sur **"Multijoueur"**
 2. Entrez votre **pseudo**
 3. **Joueur A** → "Créer la partie" → partage le code à 6 chiffres
@@ -115,7 +123,7 @@ exercice/
 ## 🛠️ Technologies
 
 | Techno | Usage |
-|---|---|
+| --- | --- |
 | **HTML5** | Structure sémantique |
 | **CSS3** | Design, animations, responsive (6 breakpoints) |
 | **JavaScript ES2022** | Logique de jeu, async/await |

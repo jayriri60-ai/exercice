@@ -1,6 +1,6 @@
 # 🪨📄✂️ Pierre Papier Ciseaux
 
-Un jeu de **Pierre Papier Ciseaux** moderne et interactif, entièrement en HTML/CSS/JavaScript pur — avec un mode **solo contre l'IA** et un mode **multijoueur en temps réel** via WebRTC (PeerJS).
+Un jeu de **Pierre Papier Ciseaux** moderne et interactif, entièrement en HTML/CSS/JavaScript pur — avec un mode **solo contre l'IA** et un mode **multijoueur en temps réel** via Firebase Realtime Database.
 
 ![Preview](https://img.shields.io/badge/version-1.0.0-blueviolet?style=for-the-badge)
 ![HTML](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
@@ -19,11 +19,11 @@ Un jeu de **Pierre Papier Ciseaux** moderne et interactif, entièrement en HTML/
 - Support clavier : touches `1` `2` `3` ou `Q` `W` `E`
 
 ### 👥 Mode Multijoueur — Temps Réel
-- Connexion **peer-to-peer** (WebRTC via PeerJS) — aucun serveur requis
+- Synchronisation parfaite via **Firebase Realtime Database**
 - Créez une partie avec un **code à 6 chiffres**
 - Partagez le code à votre adversaire pour le rejoindre
 - **Pseudos** personnalisables pour chaque joueur
-- Révélation simultanée des choix
+- Révélation simultanée des choix avec **synchronisation manuelle des manches**
 - Indicateur de connexion en temps réel 🟢
 
 ### 🏁 Système de Partie
@@ -79,7 +79,7 @@ Compatible avec tout hébergeur de fichiers statiques :
 - [Netlify](https://netlify.com)
 - [Vercel](https://vercel.com)
 
-> **Note :** Pour le mode multijoueur en production, activez le **HTTPS** sur votre hébergeur (PeerJS l'exige).
+> **Note :** Pour activer le mode multijoueur, ajoutez simplement votre configuration Firebase (`FIREBASE_CONFIG`) dans le fichier `index.html`.
 
 ---
 
@@ -89,7 +89,7 @@ Compatible avec tout hébergeur de fichiers statiques :
 exercice/
 ├── index.html   # Structure HTML (3 écrans + modal)
 ├── style.css    # Design, animations, responsive
-├── script.js    # Logique de jeu + PeerJS multijoueur
+├── script.js    # Logique de jeu + Firebase multijoueur
 └── README.md    # Ce fichier
 ```
 
@@ -107,7 +107,8 @@ exercice/
 2. Entrez votre **pseudo**
 3. **Joueur A** → "Créer la partie" → partage le code à 6 chiffres
 4. **Joueur B** → "Rejoindre" → saisit le code
-5. La partie commence automatiquement — bonne chance ! 🏆
+5. La partie commence automatiquement !
+6. À la fin d'une manche, les deux joueurs cliquent sur **"Manche suivante"** pour continuer. 🏆
 
 ---
 
@@ -118,7 +119,7 @@ exercice/
 | **HTML5** | Structure sémantique |
 | **CSS3** | Design, animations, responsive (6 breakpoints) |
 | **JavaScript ES2022** | Logique de jeu, async/await |
-| **PeerJS 1.5.4** | WebRTC peer-to-peer pour le multijoueur |
+| **Firebase 9.x** | Base de données temps réel pour le multijoueur |
 | **Google Fonts (Outfit)** | Typographie |
 
 ---

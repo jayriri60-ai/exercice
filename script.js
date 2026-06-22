@@ -334,142 +334,135 @@ async function playVsAI(playerChoice) {
 }
 
 // ═══════════════════════════════════════════════════════
-//  MULTIPLAYER — PeerJS
+//  MULTIPLAYER — Firebase Realtime Database
 // ═══════════════════════════════════════════════════════
+
+let _db = null;
+let roomRef = null;
+let myRole = null; // 'host' | 'guest'
+
+function getDB() {
+  if (!_db) {
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    _db = firebase.database();
+  }
+  return _db;
+}
+
 function generateRoomCode() {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
 function setConnStatus(status) {
-  // status: 'connecting' | 'connected' | 'disconnected'
   connDot.className = 'conn-dot ' + status;
-  const labels = {
-    connecting:   'Connexion…',
-    connected:    'Connecté',
-    disconnected: 'Déconnecté',
-  };
+  const labels = { connecting: 'Connexion…', connected: 'Connecté', disconnected: 'Déconnecté' };
   connLabel.textContent = labels[status] || status;
 }
 
-// ── Send a message to opponent ──
+// ── Write choice to Firebase ──
 function send(type, payload = {}) {
-  if (state.conn && state.conn.open) {
-    state.conn.send(JSON.stringify({ type, ...payload }));
-  }
-}
-
-// ── Handle incoming data ──
-function onData(raw) {
-  let msg;
-  try { msg = JSON.parse(raw); } catch { return; }
-
-  switch (msg.type) {
-
-    case 'HELLO':
-      // Opponent sent their pseudo
-      state.opponentPseudo = msg.pseudo || 'Adversaire';
-      // Host sends back their pseudo + starts game
-      if (state.isHost) {
-        send('HELLO', { pseudo: state.playerPseudo });
-        waitingStatusText.textContent = `${state.opponentPseudo} a rejoint ! Lancement…`;
-        setTimeout(() => startGame(MODE.MULTI), 800);
-      } else {
-        state.opponentPseudo = msg.pseudo;
-        // Guest starts game
-        setTimeout(() => startGame(MODE.MULTI), 800);
-      }
-      break;
-
-    case 'CHOICE':
-      state.opponentChoice = msg.choice;
-      checkBothChosen();
-      break;
-
-    case 'REMATCH':
-      // Opponent requested rematch
-      resetMultiGame();
-      break;
+  if (!roomRef || !myRole) return;
+  if (type === 'CHOICE') {
+    roomRef.child('choices/' + myRole).set(payload.choice);
   }
 }
 
 function checkBothChosen() {
-  if (state.myChoice && state.opponentChoice) {
+  if (state.myChoice && state.opponentChoice && !state.isPlaying) {
     resolveMultiRound(state.myChoice, state.opponentChoice);
   }
 }
 
-// ── PeerJS ICE config (STUN + TURN for NAT traversal) ──
-const PEER_CONFIG = {
-  config: {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      {
-        urls: 'turn:openrelay.metered.ca:80',
-        username: 'openrelayproject',
-        credential: 'openrelayproject',
-      },
-      {
-        urls: 'turn:openrelay.metered.ca:443',
-        username: 'openrelayproject',
-        credential: 'openrelayproject',
-      },
-      {
-        urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-        username: 'openrelayproject',
-        credential: 'openrelayproject',
-      },
-    ],
-  },
-};
+// ── Setup Firebase real-time listeners ──
+function setupFirebaseListeners() {
+  if (!roomRef) return;
+  const opponentRole = myRole === 'host' ? 'guest' : 'host';
+
+  // Listen for opponent's choice
+  roomRef.child('choices/' + opponentRole).on('value', (snap) => {
+    const choice = snap.val();
+    if (choice && state.myChoice && !state.isPlaying) {
+      state.opponentChoice = choice;
+      checkBothChosen();
+    }
+  });
+
+  // Listen for opponent disconnect (their pseudo disappears)
+  const opponentPseudoKey = opponentRole === 'host' ? 'host_pseudo' : 'guest_pseudo';
+  roomRef.child(opponentPseudoKey).on('value', (snap) => {
+    if (snap.val() === null && state.mode === MODE.MULTI && !screenGame.classList.contains('hidden')) {
+      setConnStatus('disconnected');
+      if (winnerModal.classList.contains('hidden')) {
+        resultText.textContent = '⚠️ Adversaire déconnecté';
+        resultBadge.className  = 'result-badge lose';
+        setButtonsDisabled(true);
+      }
+    }
+  });
+
+  // Listen for rematch signal from opponent
+  roomRef.child('rematch/' + opponentRole).on('value', (snap) => {
+    if (snap.val() === true) {
+      roomRef.child('rematch').remove();
+      roomRef.child('choices').set({ host: null, guest: null });
+      resetMultiGame();
+    }
+  });
+}
 
 // ── Create Room (Host) ──
 async function createRoom() {
   const pseudo = getPseudo();
   state.playerPseudo = pseudo;
   state.isHost = true;
+  myRole = 'host';
 
   const code = generateRoomCode();
 
-  // Show waiting UI
   lobbyCreateCard.style.display = 'none';
   lobbyJoinCard.style.display   = 'none';
   waitingPanel.classList.remove('hidden');
   waitingCode.textContent = code;
-  waitingStatusText.textContent = 'En attente de votre adversaire…';
+  waitingStatusText.textContent = 'Connexion au serveur…';
+  waitingStatusText.style.color = '';
 
-  // Init peer with the room code as peer ID + TURN servers
   try {
-    state.peer = new Peer('ppc-' + code, PEER_CONFIG);
+    roomRef = getDB().ref('rooms/' + code);
+    await roomRef.set({
+      host_pseudo: pseudo,
+      guest_pseudo: null,
+      choices: { host: null, guest: null },
+      rematch: null,
+    });
+    roomRef.onDisconnect().remove();
   } catch (e) {
-    alert('Impossible de se connecter. Vérifiez votre connexion Internet.');
-    cancelRoom();
+    console.error(e);
+    waitingStatusText.textContent = '❌ Erreur Firebase. Vérifiez votre configuration.';
+    waitingStatusText.style.color = 'var(--red)';
     return;
   }
 
-  state.peer.on('open', (id) => {
-    console.log('[Host] Peer open:', id);
-  });
+  waitingStatusText.textContent = 'En attente de votre adversaire…';
+  console.log('[Host] Salle créée:', code);
 
-  state.peer.on('connection', (conn) => {
-    state.conn = conn;
-    setupConnection(conn);
-  });
-
-  state.peer.on('error', (err) => {
-    console.error('[Peer error]', err);
-    if (err.type === 'unavailable-id') {
-      waitingStatusText.textContent = 'Code déjà utilisé, génération d\'un nouveau…';
-      setTimeout(createRoom, 500);
-    } else {
-      waitingStatusText.textContent = '❌ Erreur réseau. Réessayez.';
-      waitingStatusText.style.color = 'var(--red)';
+  // Listen for guest joining
+  roomRef.child('guest_pseudo').on('value', (snap) => {
+    const guestPseudo = snap.val();
+    if (guestPseudo) {
+      state.opponentPseudo = guestPseudo;
+      waitingStatusText.textContent = `${guestPseudo} a rejoint ! Lancement…`;
+      waitingStatusText.style.color = '';
+      setTimeout(() => {
+        setConnStatus('connected');
+        startGame(MODE.MULTI);
+        setupFirebaseListeners();
+      }, 800);
     }
   });
 }
 
 // ── Join Room (Guest) ──
-function joinRoom() {
+async function joinRoom() {
   const code = roomCodeInput.value.trim();
   if (!/^\d{6}$/.test(code)) {
     roomCodeInput.style.borderColor = 'var(--red)';
@@ -481,80 +474,56 @@ function joinRoom() {
   const pseudo = getPseudo();
   state.playerPseudo = pseudo;
   state.isHost = false;
+  myRole = 'guest';
 
   lobbyCreateCard.style.display = 'none';
   lobbyJoinCard.style.display   = 'none';
   waitingPanel.classList.remove('hidden');
   waitingCode.textContent = code;
   waitingStatusText.textContent = 'Connexion en cours…';
+  waitingStatusText.style.color = '';
 
   try {
-    state.peer = new Peer(PEER_CONFIG);
-  } catch {
-    alert('Impossible d\'initialiser la connexion. Vérifiez votre connexion Internet.');
-    cancelRoom();
+    roomRef = getDB().ref('rooms/' + code);
+    const snap = await roomRef.once('value');
+
+    if (!snap.exists() || !snap.val().host_pseudo) {
+      waitingStatusText.textContent = '❌ Code introuvable. L\'hôte a peut-être annulé.';
+      waitingStatusText.style.color = 'var(--red)';
+      lobbyCreateCard.style.display = '';
+      lobbyJoinCard.style.display   = '';
+      waitingPanel.classList.add('hidden');
+      roomRef = null;
+      return;
+    }
+
+    state.opponentPseudo = snap.val().host_pseudo;
+    await roomRef.child('guest_pseudo').set(pseudo);
+    roomRef.child('guest_pseudo').onDisconnect().remove();
+
+  } catch (e) {
+    console.error(e);
+    waitingStatusText.textContent = '❌ Erreur de connexion. Réessayez.';
+    waitingStatusText.style.color = 'var(--red)';
     return;
   }
 
-  // Timeout si la connexion ne s'établit pas en 15s
-  const joinTimeout = setTimeout(() => {
-    if (!state.conn || !state.conn.open) {
-      waitingStatusText.textContent = '⏱️ Délai dépassé. Vérifiez le code et réessayez.';
-      waitingStatusText.style.color = 'var(--red)';
-    }
-  }, 15000);
-
-  state.peer.on('open', () => {
-    const conn = state.peer.connect('ppc-' + code, {
-      reliable: true,
-      serialization: 'json',
-    });
-    state.conn = conn;
-    setupConnection(conn, joinTimeout);
-  });
-
-  state.peer.on('error', (err) => {
-    clearTimeout(joinTimeout);
-    console.error('[Peer error]', err);
-    if (err.type === 'peer-unavailable') {
-      waitingStatusText.textContent = '❌ Code introuvable. L\'hôte a peut-être annulé.';
-    } else {
-      waitingStatusText.textContent = '❌ Erreur de connexion. Vérifiez le code.';
-    }
-    waitingStatusText.style.color = 'var(--red)';
-  });
-}
-
-// ── Setup connection handlers ──
-function setupConnection(conn, timeoutId) {
-  conn.on('open', () => {
-    if (timeoutId) clearTimeout(timeoutId);
-    console.log('[Conn] Open');
-    setConnStatus('connected');
-    waitingStatusText.style.color = '';
-    // Exchange pseudos
-    send('HELLO', { pseudo: state.playerPseudo });
-  });
-
-  conn.on('data', (raw) => onData(raw));
-
-  conn.on('close', () => {
-    setConnStatus('disconnected');
-    if (!winnerModal.classList.contains('hidden')) return;
-    resultText.textContent = '⚠️ Adversaire déconnecté';
-    resultBadge.className  = 'result-badge lose';
-    setButtonsDisabled(true);
-  });
-
-  conn.on('error', (err) => {
-    console.error('[Conn error]', err);
-    setConnStatus('disconnected');
-  });
+  waitingStatusText.textContent = '✅ Connecté ! Lancement…';
+  setConnStatus('connected');
+  setTimeout(() => {
+    startGame(MODE.MULTI);
+    setupFirebaseListeners();
+  }, 800);
 }
 
 // ── Cancel room ──
 function cancelRoom() {
-  if (state.peer) { state.peer.destroy(); state.peer = null; }
+  if (roomRef) {
+    roomRef.off();
+    if (state.isHost) roomRef.remove();
+    roomRef = null;
+  }
+  myRole = null;
   state.conn = null;
   lobbyCreateCard.style.display = '';
   lobbyJoinCard.style.display   = '';
@@ -634,6 +603,11 @@ async function resolveMultiRound(myChoice, opponentChoice) {
   state.myChoice       = null;
   state.opponentChoice = null;
   choiceBtns.forEach(b => b.classList.remove('selected-choice'));
+
+  // Clear my choice from Firebase for next round
+  if (roomRef && myRole) {
+    roomRef.child('choices/' + myRole).remove();
+  }
 
   // Check match winner
   if (state.playerScore >= WIN_GOAL) { await sleep(500); showWinnerModal(true); return; }
@@ -739,7 +713,7 @@ resetBtn.addEventListener('click', resetGame);
 modalRematch.addEventListener('click', () => {
   winnerModal.classList.add('hidden');
   if (state.mode === MODE.MULTI) {
-    send('REMATCH');
+    if (roomRef && myRole) roomRef.child('rematch/' + myRole).set(true);
     resetMultiGame();
   } else {
     resetGame();

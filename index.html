@@ -7,7 +7,21 @@
   <meta name="description" content="Jeu de Pierre Papier Ciseaux — Solo vs IA ou Multijoueur en temps réel" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet" />
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <!-- ⚠️ REMPLACEZ CES VALEURS par celles de votre projet Firebase -->
+  <script>
+    const FIREBASE_CONFIG = {
+      apiKey: "VOTRE_API_KEY",
+      authDomain: "VOTRE_PROJET.firebaseapp.com",
+      databaseURL: "https://VOTRE_PROJET-default-rtdb.firebaseio.com",
+      projectId: "VOTRE_PROJET_ID",
+      storageBucket: "VOTRE_PROJET.appspot.com",
+      messagingSenderId: "VOTRE_SENDER_ID",
+      appId: "VOTRE_APP_ID"
+    };
+  </script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>

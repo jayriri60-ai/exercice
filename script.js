@@ -363,7 +363,7 @@ function setConnStatus(status) {
 function send(type, payload = {}) {
   if (!roomRef || !myRole) return;
   if (type === 'CHOICE') {
-    roomRef.child('choices/' + myRole).set(payload.choice);
+    roomRef.child(`choices/${state.round}/${myRole}`).set(payload.choice);
   }
 }
 
@@ -378,11 +378,13 @@ function setupFirebaseListeners() {
   if (!roomRef) return;
   const opponentRole = myRole === 'host' ? 'guest' : 'host';
 
-  // Listen for opponent's choice
-  roomRef.child('choices/' + opponentRole).on('value', (snap) => {
-    const choice = snap.val();
-    if (choice && state.myChoice && !state.isPlaying) {
-      state.opponentChoice = choice;
+  // Listen for ALL choices to handle rapid play
+  roomRef.child('choices').on('value', (snap) => {
+    const choices = snap.val() || {};
+    const currentRoundChoices = choices[state.round] || {};
+    
+    if (currentRoundChoices[opponentRole]) {
+      state.opponentChoice = currentRoundChoices[opponentRole];
       checkBothChosen();
     }
   });
@@ -404,7 +406,7 @@ function setupFirebaseListeners() {
   roomRef.child('rematch/' + opponentRole).on('value', (snap) => {
     if (snap.val() === true) {
       roomRef.child('rematch').remove();
-      roomRef.child('choices').set({ host: null, guest: null });
+      roomRef.child('choices').remove();
       resetMultiGame();
     }
   });
@@ -431,7 +433,7 @@ async function createRoom() {
     await roomRef.set({
       host_pseudo: pseudo,
       guest_pseudo: null,
-      choices: { host: null, guest: null },
+      choices: {},
       rematch: null,
     });
     roomRef.onDisconnect().remove();
@@ -604,11 +606,6 @@ async function resolveMultiRound(myChoice, opponentChoice) {
   state.opponentChoice = null;
   choiceBtns.forEach(b => b.classList.remove('selected-choice'));
 
-  // Clear my choice from Firebase for next round
-  if (roomRef && myRole) {
-    roomRef.child('choices/' + myRole).remove();
-  }
-
   // Check match winner
   if (state.playerScore >= WIN_GOAL) { await sleep(500); showWinnerModal(true); return; }
   if (state.opponentScore >= WIN_GOAL) { await sleep(500); showWinnerModal(false); return; }
@@ -616,6 +613,17 @@ async function resolveMultiRound(myChoice, opponentChoice) {
   await sleep(700);
   setButtonsDisabled(false);
   state.isPlaying = false;
+
+  // Check if opponent already played the new round while we were animating
+  if (roomRef && myRole) {
+    const opponentRole = myRole === 'host' ? 'guest' : 'host';
+    roomRef.child(`choices/${state.round}/${opponentRole}`).once('value', snap => {
+      if (snap.exists()) {
+        state.opponentChoice = snap.val();
+        checkBothChosen();
+      }
+    });
+  }
 }
 
 // ─── Rematch (multi) ──────────────────────────────────

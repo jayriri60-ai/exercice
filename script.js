@@ -31,6 +31,8 @@ let state = {
   isHost: false,
   myChoice: null,
   opponentChoice: null,
+  myReady: false,
+  opponentReady: false,
 };
 
 // ─── DOM refs ─────────────────────────────────────────
@@ -80,6 +82,9 @@ const historyList     = document.getElementById('history-list');
 const resetBtn        = document.getElementById('reset-btn');
 const choiceBtns      = document.querySelectorAll('.choice-btn');
 const chooseLabel     = document.getElementById('choose-label');
+const btnNextRound    = document.getElementById('btn-next-round');
+const nextRoundContainer = document.getElementById('next-round-container');
+const choicesContainer = document.querySelector('.choices');
 
 // Modal
 const winnerModal  = document.getElementById('winner-modal');
@@ -389,6 +394,16 @@ function setupFirebaseListeners() {
     }
   });
 
+  // Listen for opponent ready state
+  roomRef.child('ready').on('value', (snap) => {
+    const readyObj = snap.val() || {};
+    const currentRoundReady = readyObj[state.round] || {};
+    if (currentRoundReady[opponentRole]) {
+      state.opponentReady = true;
+      checkBothReady();
+    }
+  });
+
   // Listen for opponent disconnect (their pseudo disappears)
   const opponentPseudoKey = opponentRole === 'host' ? 'host_pseudo' : 'guest_pseudo';
   roomRef.child(opponentPseudoKey).on('value', (snap) => {
@@ -407,6 +422,7 @@ function setupFirebaseListeners() {
     if (snap.val() === true) {
       roomRef.child('rematch').remove();
       roomRef.child('choices').remove();
+      roomRef.child('ready').remove();
       resetMultiGame();
     }
   });
@@ -434,6 +450,7 @@ async function createRoom() {
       host_pseudo: pseudo,
       guest_pseudo: null,
       choices: {},
+      ready: {},
       rematch: null,
     });
     roomRef.onDisconnect().remove();
@@ -610,12 +627,42 @@ async function resolveMultiRound(myChoice, opponentChoice) {
   if (state.playerScore >= WIN_GOAL) { await sleep(500); showWinnerModal(true); return; }
   if (state.opponentScore >= WIN_GOAL) { await sleep(500); showWinnerModal(false); return; }
 
-  await sleep(700);
-  setButtonsDisabled(false);
-  state.isPlaying = false;
+  // Show "Next Round" button
+  choicesContainer.style.display = 'none';
+  nextRoundContainer.classList.remove('hidden');
+  btnNextRound.textContent = 'Manche suivante';
+  btnNextRound.disabled = false;
+  chooseLabel.textContent = 'Manche terminée';
 
-  // Check if opponent already played the new round while we were animating
-  if (roomRef && myRole) {
+  state.isPlaying = false;
+}
+
+function checkBothReady() {
+  if (state.myReady && state.opponentReady) {
+    startNextRound();
+  }
+}
+
+function startNextRound() {
+  state.myReady = false;
+  state.opponentReady = false;
+
+  nextRoundContainer.classList.add('hidden');
+  choicesContainer.style.display = 'flex';
+  chooseLabel.textContent = 'Choisissez votre arme !';
+  
+  playerDisplay.className = 'choice-display';
+  aiDisplay.className     = 'choice-display';
+  playerDisplay.innerHTML = '<span class="choice-emoji">❓</span>';
+  aiDisplay.innerHTML     = '<span class="choice-emoji">❓</span>';
+
+  resultBadge.className  = 'result-badge';
+  resultText.textContent = 'Fais ton choix !';
+
+  setButtonsDisabled(false);
+
+  // Check if opponent already played the new round (if they clicked ready very fast)
+  if (state.mode === MODE.MULTI && roomRef && myRole) {
     const opponentRole = myRole === 'host' ? 'guest' : 'host';
     roomRef.child(`choices/${state.round}/${opponentRole}`).once('value', snap => {
       if (snap.exists()) {
@@ -651,6 +698,9 @@ function resetMultiGame() {
   resultBadge.className  = 'result-badge';
   resultText.textContent = 'Fais ton choix !';
   chooseLabel.textContent = 'Choisissez votre arme !';
+
+  nextRoundContainer.classList.add('hidden');
+  choicesContainer.style.display = 'flex';
 
   winnerModal.classList.add('hidden');
   renderHistory();
@@ -709,9 +759,24 @@ gameBackBtn.addEventListener('click', () => {
   showScreen(screenMode);
 });
 
-// Choice buttons
+// Choices
 choiceBtns.forEach(btn => {
   btn.addEventListener('click', () => play(btn.dataset.choice));
+});
+
+// Next Round
+btnNextRound.addEventListener('click', () => {
+  btnNextRound.disabled = true;
+  btnNextRound.textContent = 'En attente...';
+  state.myReady = true;
+
+  if (state.mode === MODE.MULTI && roomRef && myRole) {
+    roomRef.child(`ready/${state.round}/${myRole}`).set(true);
+  } else {
+    // AI mode
+    state.opponentReady = true;
+    checkBothReady();
+  }
 });
 
 // Reset (AI only)

@@ -398,6 +398,31 @@ function checkBothChosen() {
   }
 }
 
+// ── PeerJS ICE config (STUN + TURN for NAT traversal) ──
+const PEER_CONFIG = {
+  config: {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      {
+        urls: 'turn:openrelay.metered.ca:80',
+        username: 'openrelayproject',
+        credential: 'openrelayproject',
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443',
+        username: 'openrelayproject',
+        credential: 'openrelayproject',
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+        username: 'openrelayproject',
+        credential: 'openrelayproject',
+      },
+    ],
+  },
+};
+
 // ── Create Room (Host) ──
 async function createRoom() {
   const pseudo = getPseudo();
@@ -413,11 +438,11 @@ async function createRoom() {
   waitingCode.textContent = code;
   waitingStatusText.textContent = 'En attente de votre adversaire…';
 
-  // Init peer with the room code as peer ID
+  // Init peer with the room code as peer ID + TURN servers
   try {
-    state.peer = new Peer('ppc-' + code);
+    state.peer = new Peer('ppc-' + code, PEER_CONFIG);
   } catch (e) {
-    alert('Impossible de se connecter au serveur de signalisation. Vérifiez votre connexion Internet.');
+    alert('Impossible de se connecter. Vérifiez votre connexion Internet.');
     cancelRoom();
     return;
   }
@@ -436,6 +461,9 @@ async function createRoom() {
     if (err.type === 'unavailable-id') {
       waitingStatusText.textContent = 'Code déjà utilisé, génération d\'un nouveau…';
       setTimeout(createRoom, 500);
+    } else {
+      waitingStatusText.textContent = '❌ Erreur réseau. Réessayez.';
+      waitingStatusText.style.color = 'var(--red)';
     }
   });
 }
@@ -461,31 +489,49 @@ function joinRoom() {
   waitingStatusText.textContent = 'Connexion en cours…';
 
   try {
-    state.peer = new Peer();
+    state.peer = new Peer(PEER_CONFIG);
   } catch {
     alert('Impossible d\'initialiser la connexion. Vérifiez votre connexion Internet.');
     cancelRoom();
     return;
   }
 
+  // Timeout si la connexion ne s'établit pas en 15s
+  const joinTimeout = setTimeout(() => {
+    if (!state.conn || !state.conn.open) {
+      waitingStatusText.textContent = '⏱️ Délai dépassé. Vérifiez le code et réessayez.';
+      waitingStatusText.style.color = 'var(--red)';
+    }
+  }, 15000);
+
   state.peer.on('open', () => {
-    const conn = state.peer.connect('ppc-' + code, { reliable: true });
+    const conn = state.peer.connect('ppc-' + code, {
+      reliable: true,
+      serialization: 'json',
+    });
     state.conn = conn;
-    setupConnection(conn);
+    setupConnection(conn, joinTimeout);
   });
 
   state.peer.on('error', (err) => {
+    clearTimeout(joinTimeout);
     console.error('[Peer error]', err);
-    waitingStatusText.textContent = 'Erreur de connexion. Vérifiez le code.';
+    if (err.type === 'peer-unavailable') {
+      waitingStatusText.textContent = '❌ Code introuvable. L\'hôte a peut-être annulé.';
+    } else {
+      waitingStatusText.textContent = '❌ Erreur de connexion. Vérifiez le code.';
+    }
     waitingStatusText.style.color = 'var(--red)';
   });
 }
 
 // ── Setup connection handlers ──
-function setupConnection(conn) {
+function setupConnection(conn, timeoutId) {
   conn.on('open', () => {
+    if (timeoutId) clearTimeout(timeoutId);
     console.log('[Conn] Open');
     setConnStatus('connected');
+    waitingStatusText.style.color = '';
     // Exchange pseudos
     send('HELLO', { pseudo: state.playerPseudo });
   });

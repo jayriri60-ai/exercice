@@ -415,12 +415,7 @@ async function createRoom() {
 
   // Init peer with the room code as peer ID
   try {
-    state.peer = new Peer('ppc-' + code, {
-      host: '0.peerjs.com',
-      port: 443,
-      secure: true,
-      path: '/',
-    });
+    state.peer = new Peer('ppc-' + code);
   } catch (e) {
     alert('Impossible de se connecter au serveur de signalisation. Vérifiez votre connexion Internet.');
     cancelRoom();
@@ -466,12 +461,7 @@ function joinRoom() {
   waitingStatusText.textContent = 'Connexion en cours…';
 
   try {
-    state.peer = new Peer(undefined, {
-      host: '0.peerjs.com',
-      port: 443,
-      secure: true,
-      path: '/',
-    });
+    state.peer = new Peer();
   } catch {
     alert('Impossible d\'initialiser la connexion. Vérifiez votre connexion Internet.');
     cancelRoom();

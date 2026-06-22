@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pierre Papier Ciseaux ✂️ v1.1</title>
+  <title>Pierre Papier Ciseaux ✂️</title>
   <meta name="description" content="Jeu de Pierre Papier Ciseaux — Solo vs IA ou Multijoueur en temps réel" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet" />
@@ -13,17 +14,18 @@
   <!-- ⚠️ REMPLACEZ CES VALEURS par celles de votre projet Firebase -->
   <script>
     const FIREBASE_CONFIG = {
-      apiKey: "VOTRE_API_KEY",
-      authDomain: "VOTRE_PROJET.firebaseapp.com",
-      databaseURL: "https://VOTRE_PROJET-default-rtdb.firebaseio.com",
-      projectId: "VOTRE_PROJET_ID",
-      storageBucket: "VOTRE_PROJET.appspot.com",
-      messagingSenderId: "VOTRE_SENDER_ID",
-      appId: "VOTRE_APP_ID"
+      apiKey: "AIzaSyAfGYL9-5Z_woAHF-0eFX8SdUfllB6kp3o",
+      authDomain: "pierre-papier-ciseaux-c0b38.firebaseapp.com",
+      databaseURL: "https://pierre-papier-ciseaux-c0b38-default-rtdb.firebaseio.com",
+      projectId: "pierre-papier-ciseaux-c0b38",
+      storageBucket: "pierre-papier-ciseaux-c0b38.firebasestorage.app",
+      messagingSenderId: "47583237584",
+      appId: "1:47583237584:web:f88d457ffadb4ddd07d5d5"
     };
   </script>
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
   <div class="bg-orbs">
     <div class="orb orb-1"></div>
@@ -37,7 +39,7 @@
   <div class="screen" id="screen-mode">
     <header class="header">
       <h1 class="title">Pierre <span class="accent">·</span> Papier <span class="accent">·</span> Ciseaux</h1>
-      <p class="subtitle">Choisissez votre mode de jeu (Version 1.1 Firebase)</p>
+      <p class="subtitle">Choisissez votre mode de jeu</p>
     </header>
 
     <div class="mode-cards">
@@ -79,15 +81,8 @@
       <label class="pseudo-label" for="pseudo-input">Votre pseudo</label>
       <div class="pseudo-input-wrap">
         <span class="pseudo-icon">🎮</span>
-        <input
-          type="text"
-          id="pseudo-input"
-          class="pseudo-input"
-          placeholder="Entrez votre pseudo…"
-          maxlength="16"
-          autocomplete="off"
-          spellcheck="false"
-        />
+        <input type="text" id="pseudo-input" class="pseudo-input" placeholder="Entrez votre pseudo…" maxlength="16"
+          autocomplete="off" spellcheck="false" />
       </div>
     </div>
 
@@ -112,15 +107,8 @@
         </div>
         <p class="lobby-card-desc">Saisissez le code fourni par votre ami</p>
         <div class="join-input-wrap">
-          <input
-            type="text"
-            id="room-code-input"
-            class="code-input"
-            placeholder="Code à 6 chiffres"
-            maxlength="6"
-            autocomplete="off"
-            inputmode="numeric"
-          />
+          <input type="text" id="room-code-input" class="code-input" placeholder="Code à 6 chiffres" maxlength="6"
+            autocomplete="off" inputmode="numeric" />
           <button class="lobby-btn lobby-btn--join" id="btn-join-room">Rejoindre</button>
         </div>
       </div>
@@ -260,4 +248,5 @@
 
   <script src="script.js"></script>
 </body>
+
 </html>

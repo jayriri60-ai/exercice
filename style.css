@@ -1016,6 +1016,62 @@ body {
 }
 
 /* ===========================
+   Next Round Button
+   =========================== */
+.btn-next-round {
+  width: 100%;
+  padding: 1.2rem;
+  font-size: 1.1rem;
+  font-family: var(--font);
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, var(--purple), var(--pink));
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-next-round::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 50%; height: 100%;
+  background: linear-gradient(to right, transparent, rgba(255,255,255,0.2), transparent);
+  transform: skewX(-20deg);
+  transition: all 0.5s;
+}
+
+.btn-next-round:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(139, 92, 246, 0.5);
+}
+
+.btn-next-round:hover::before {
+  left: 150%;
+}
+
+.btn-next-round:active {
+  transform: scale(0.98);
+}
+
+.btn-next-round:disabled {
+  background: var(--surface-hover);
+  color: var(--text-muted);
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+.btn-next-round:disabled::before {
+  display: none;
+}
+
+/* ===========================
    Match Winner Modal
    =========================== */
 .modal-overlay {

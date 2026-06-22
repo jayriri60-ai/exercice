@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pierre Papier Ciseaux ✂️</title>
+  <meta name="description" content="Jeu de Pierre Papier Ciseaux — Solo vs IA ou Multijoueur en temps réel" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <!-- ════════════════════════════════════
+       SCREEN 1 — Mode Selection
+       ════════════════════════════════════ -->
+  <div class="screen" id="screen-mode">
+    <header class="header">
+      <h1 class="title">Pierre <span class="accent">·</span> Papier <span class="accent">·</span> Ciseaux</h1>
+      <p class="subtitle">Choisissez votre mode de jeu</p>
+    </header>
+
+    <div class="mode-cards">
+      <button class="mode-card" id="mode-ai" aria-label="Jouer contre l'IA">
+        <div class="mode-icon">🤖</div>
+        <div class="mode-info">
+          <span class="mode-name">Vs Intelligence Artificielle</span>
+          <span class="mode-desc">Affrontez l'IA en solo</span>
+        </div>
+        <div class="mode-arrow">→</div>
+        <div class="mode-glow"></div>
+      </button>
+
+      <button class="mode-card mode-card--multi" id="mode-multi" aria-label="Jouer contre un ami en ligne">
+        <div class="mode-icon">👥</div>
+        <div class="mode-info">
+          <span class="mode-name">Multijoueur <span class="badge-live">LIVE</span></span>
+          <span class="mode-desc">Défiez un ami en temps réel</span>
+        </div>
+        <div class="mode-arrow">→</div>
+        <div class="mode-glow"></div>
+      </button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════
+       SCREEN 2 — Multiplayer Lobby
+       ════════════════════════════════════ -->
+  <div class="screen hidden" id="screen-lobby">
+    <button class="back-btn" id="lobby-back" aria-label="Retour">← Retour</button>
+
+    <header class="header">
+      <h1 class="title">Mode <span class="accent">Multijoueur</span></h1>
+      <p class="subtitle">Créez ou rejoignez une partie</p>
+    </header>
+
+    <!-- Pseudo input -->
+    <div class="pseudo-form">
+      <label class="pseudo-label" for="pseudo-input">Votre pseudo</label>
+      <div class="pseudo-input-wrap">
+        <span class="pseudo-icon">🎮</span>
+        <input
+          type="text"
+          id="pseudo-input"
+          class="pseudo-input"
+          placeholder="Entrez votre pseudo…"
+          maxlength="16"
+          autocomplete="off"
+          spellcheck="false"
+        />
+      </div>
+    </div>
+
+    <div class="lobby-actions">
+      <!-- Create Room -->
+      <div class="lobby-card" id="lobby-create-card">
+        <div class="lobby-card-header">
+          <span class="lobby-card-icon">🆕</span>
+          <span class="lobby-card-title">Créer une partie</span>
+        </div>
+        <p class="lobby-card-desc">Générez un code et partagez-le à votre ami</p>
+        <button class="lobby-btn lobby-btn--create" id="btn-create-room">Créer la partie</button>
+      </div>
+
+      <div class="lobby-divider"><span>ou</span></div>
+
+      <!-- Join Room -->
+      <div class="lobby-card" id="lobby-join-card">
+        <div class="lobby-card-header">
+          <span class="lobby-card-icon">🔗</span>
+          <span class="lobby-card-title">Rejoindre une partie</span>
+        </div>
+        <p class="lobby-card-desc">Saisissez le code fourni par votre ami</p>
+        <div class="join-input-wrap">
+          <input
+            type="text"
+            id="room-code-input"
+            class="code-input"
+            placeholder="Code à 6 chiffres"
+            maxlength="6"
+            autocomplete="off"
+            inputmode="numeric"
+          />
+          <button class="lobby-btn lobby-btn--join" id="btn-join-room">Rejoindre</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Waiting state (shown after creating a room) -->
+    <div class="waiting-panel hidden" id="waiting-panel">
+      <div class="waiting-code-box">
+        <span class="waiting-label">Code de votre partie</span>
+        <div class="waiting-code" id="waiting-code">——</div>
+        <button class="copy-btn" id="copy-code-btn" aria-label="Copier le code">📋 Copier</button>
+      </div>
+      <div class="waiting-status">
+        <div class="pulse-dot"></div>
+        <span id="waiting-status-text">En attente de votre adversaire…</span>
+      </div>
+      <button class="cancel-btn" id="btn-cancel-room">Annuler</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════
+       SCREEN 3 — Game
+       ════════════════════════════════════ -->
+  <div class="screen hidden" id="screen-game">
+    <div class="game-topbar">
+      <button class="back-btn" id="game-back" aria-label="Quitter la partie">← Quitter</button>
+      <div class="conn-status" id="conn-status">
+        <span class="conn-dot" id="conn-dot"></span>
+        <span id="conn-label">Connecté</span>
+      </div>
+    </div>
+
+    <div class="container">
+      <!-- Header -->
+      <header class="header">
+        <h1 class="title">Pierre <span class="accent">·</span> Papier <span class="accent">·</span> Ciseaux</h1>
+        <p class="subtitle" id="game-subtitle">Défiez l'intelligence artificielle !</p>
+      </header>
+
+      <!-- Win goal banner -->
+      <div class="win-goal-banner" id="win-goal-banner">
+        🏁 Premier à <strong>5 victoires</strong> remporte la partie
+      </div>
+
+      <!-- Scoreboard -->
+      <div class="scoreboard">
+        <div class="score-card player-score">
+          <span class="score-label" id="label-player">Toi</span>
+          <span class="score-value" id="player-score">0</span>
+          <div class="score-pips" id="pips-player"></div>
+        </div>
+        <div class="score-divider">
+          <span class="round-text" id="round-text">Round 1</span>
+          <div class="vs-badge">VS</div>
+        </div>
+        <div class="score-card ai-score">
+          <span class="score-label" id="label-opponent">IA</span>
+          <span class="score-value" id="ai-score">0</span>
+          <div class="score-pips" id="pips-opponent"></div>
+        </div>
+      </div>
+
+      <!-- Battle Arena -->
+      <div class="arena">
+        <div class="fighter player-fighter" id="player-fighter">
+          <div class="fighter-label" id="arena-label-player">Ton choix</div>
+          <div class="choice-display" id="player-display">
+            <span class="choice-emoji">❓</span>
+          </div>
+        </div>
+
+        <div class="arena-center">
+          <div class="result-badge" id="result-badge">
+            <span id="result-text">Fais ton choix !</span>
+          </div>
+        </div>
+
+        <div class="fighter ai-fighter" id="ai-fighter">
+          <div class="fighter-label" id="arena-label-opponent">Adversaire</div>
+          <div class="choice-display" id="ai-display">
+            <span class="choice-emoji">❓</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Choices -->
+      <div class="choices-section">
+        <p class="choose-label" id="choose-label">Choisissez votre arme !</p>
+        <div class="choices">
+          <button class="choice-btn" id="btn-rock" data-choice="rock" aria-label="Pierre">
+            <span class="btn-emoji">🪨</span>
+            <span class="btn-label">Pierre</span>
+            <div class="btn-glow"></div>
+          </button>
+          <button class="choice-btn" id="btn-paper" data-choice="paper" aria-label="Papier">
+            <span class="btn-emoji">📄</span>
+            <span class="btn-label">Papier</span>
+            <div class="btn-glow"></div>
+          </button>
+          <button class="choice-btn" id="btn-scissors" data-choice="scissors" aria-label="Ciseaux">
+            <span class="btn-emoji">✂️</span>
+            <span class="btn-label">Ciseaux</span>
+            <div class="btn-glow"></div>
+          </button>
+        </div>
+      </div>
+
+      <!-- History -->
+      <div class="history-section">
+        <h2 class="history-title">Historique</h2>
+        <div class="history-list" id="history-list">
+          <p class="history-empty">Aucune partie jouée…</p>
+        </div>
+      </div>
+
+      <!-- Reset -->
+      <button class="reset-btn" id="reset-btn" aria-label="Réinitialiser le score">
+        🔄 Nouvelle partie
+      </button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════
+       MODAL — Match Winner
+       ════════════════════════════════════ -->
+  <div class="modal-overlay hidden" id="winner-modal">
+    <div class="modal">
+      <div class="modal-emoji" id="modal-emoji">🏆</div>
+      <h2 class="modal-title" id="modal-title">Victoire !</h2>
+      <p class="modal-sub" id="modal-sub">Tu as remporté la partie</p>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn--primary" id="modal-rematch">🔄 Revanche</button>
+        <button class="modal-btn modal-btn--secondary" id="modal-quit">Quitter</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
